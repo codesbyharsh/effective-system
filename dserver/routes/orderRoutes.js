@@ -30,10 +30,10 @@ router.get('/available/:pincode', async (req, res) => {
 
 
 // update status
-// update status
+// Update delivery status
 router.post('/:orderId/status', async (req, res) => {
   try {
-    const { status, riderId } = req.body;
+    const { status } = req.body;
     const order = await Order.findById(req.params.orderId);
     if (!order) return res.status(404).json({ error: 'Not found' });
 
@@ -44,14 +44,13 @@ router.post('/:orderId/status', async (req, res) => {
     if (status === 'Delivered') {
       order.deliveredAt = new Date();
       order.inBucket = false;
-
       await Rider.updateOne(
         { 'bucketList.order': order._id },
         { $set: { 'bucketList.$.status': 'completed' } }
       );
     }
     if (status === 'Cancelled') {
-      order.inBucket = false;
+    order.inBucket = false;
 
       await Rider.updateOne(
         { 'bucketList.order': order._id },
@@ -67,5 +66,30 @@ router.post('/:orderId/status', async (req, res) => {
   }
 });
 
+// 🔥 Return flow
+router.post('/:orderId/return', async (req, res) => {
+  try {
+    const { returnStatus } = req.body;
+    const order = await Order.findById(req.params.orderId);
+    if (!order) return res.status(404).json({ error: 'Not found' });
+
+    order.returnStatus = returnStatus;
+
+    const now = new Date();
+    if (returnStatus === 'Return Requested') order.returnTimeline.requestedAt = now;
+    if (returnStatus === 'Return Approved / Pickup Scheduled') order.returnTimeline.approvedAt = now;
+    if (returnStatus === 'Return Picked Up') order.returnTimeline.pickedUpAt = now;
+    if (returnStatus === 'Return in Transit') order.returnTimeline.inTransitAt = now;
+    if (returnStatus === 'Return Completed') order.returnTimeline.completedAt = now;
+    if (returnStatus === 'Refund Initiated') order.returnTimeline.refundInitiatedAt = now;
+    if (returnStatus === 'Refund Completed') order.returnTimeline.refundCompletedAt = now;
+
+    await order.save();
+    res.json(order);
+  } catch (err) {
+    console.error('Return update error:', err);
+    res.status(500).json({ error: 'Failed to update return status' });
+  }
+});
 
 module.exports = router;

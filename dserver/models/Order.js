@@ -25,16 +25,42 @@ const orderSchema = new mongoose.Schema({
     default: 'Order Placed'
   },
 
-  inBucket: {
-  type: Boolean,
-  default: false
+  inBucket: { type: Boolean, default: false },
+  bucketedBy: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Rider",
+  default: null
 },
-
+  // Delivery timestamps
   placedAt: { type: Date, default: Date.now },
   packedAt: Date,
   shippedAt: Date,
   outForDeliveryAt: Date,
   deliveredAt: Date,
+
+  // 🔥 Return lifecycle
+  returnStatus: {
+    type: String,
+    enum: [
+      'Return Requested',
+      'Return Approved / Pickup Scheduled',
+      'Return Picked Up',
+      'Return in Transit',
+      'Return Completed',
+      'Refund Initiated',
+      'Refund Completed'
+    ],
+    default: null
+  },
+  returnTimeline: {
+    requestedAt: Date,
+    approvedAt: Date,
+    pickedUpAt: Date,
+    inTransitAt: Date,
+    completedAt: Date,
+    refundInitiatedAt: Date,
+    refundCompletedAt: Date
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

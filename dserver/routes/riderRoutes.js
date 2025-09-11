@@ -29,4 +29,16 @@ router.post("/location", async (req, res) => {
   }
 });
 
+router.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const rider = await Rider.findOne({ username, password });
+    if (!rider) return res.status(401).json({ error: "Invalid credentials" });
+    res.json(rider); // will include _id, username, name
+  } catch (err) {
+    res.status(500).json({ error: "Login failed" });
+  }
+});
+
+
 module.exports = router;
