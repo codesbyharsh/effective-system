@@ -34,8 +34,15 @@ router.post("/login", async (req, res) => {
   try {
     const rider = await Rider.findOne({ username, password });
     if (!rider) return res.status(401).json({ error: "Invalid credentials" });
-    res.json(rider); // will include _id, username, name
+
+    // return only safe fields
+    res.json({
+      _id: rider._id,
+      username: rider.username,
+      name: rider.name
+    });
   } catch (err) {
+    console.error("Rider login failed:", err);
     res.status(500).json({ error: "Login failed" });
   }
 });

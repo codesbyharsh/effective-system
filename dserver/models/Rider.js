@@ -1,15 +1,12 @@
+// models/Rider.js
 const mongoose = require('mongoose');
 
 const riderSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true }, // plain for now (match your seeding)
   name: { type: String, required: true },
   phone: String,
- bucketList: [
-  {
-    order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
-    status: { type: String, enum: ['pending', 'completed', 'incomplete'], default: 'pending' },
-    addedAt: { type: Date, default: Date.now }
-  }
-]
+  lastOnlineAt: Date
 }, { timestamps: true });
 
 module.exports = mongoose.model('Rider', riderSchema);

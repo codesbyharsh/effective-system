@@ -1,13 +1,9 @@
+// routes/orderRoutes.js
 const express = require('express');
 const Order = require('../models/Order');
-const Rider = require('../models/Rider');
 const router = express.Router();
 
-// get orders by pincode
-
-// orderRoutes.js
-// get orders by pincode
-// Only show "Packed / Processing" orders for selected pincode
+// get orders by pincode (only Packed / Processing)
 router.get('/available/:pincode', async (req, res) => {
   try {
     const { pincode } = req.params;
@@ -19,17 +15,13 @@ router.get('/available/:pincode', async (req, res) => {
       .populate('items.product', 'name price')
       .sort({ createdAt: -1 });
 
-    res.json(orders); // client expects array
+    res.json(orders);
   } catch (err) {
     console.error('Error fetching available orders:', err);
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
 
-
-
-
-// update status
 // Update delivery status
 router.post('/:orderId/status', async (req, res) => {
   try {
@@ -44,18 +36,20 @@ router.post('/:orderId/status', async (req, res) => {
     if (status === 'Delivered') {
       order.deliveredAt = new Date();
       order.inBucket = false;
-      await Rider.updateOne(
-        { 'bucketList.order': order._id },
-        { $set: { 'bucketList.$.status': 'completed' } }
-      );
+
+      // Mark assignedTo as completed/delivered if assigned
+      if (order.assignedTo && order.assignedTo.riderId) {
+        order.assignedTo.deliveredAt = new Date();
+        order.assignedTo.completed = true;
+      }
     }
     if (status === 'Cancelled') {
-    order.inBucket = false;
+      order.inBucket = false;
 
-      await Rider.updateOne(
-        { 'bucketList.order': order._id },
-        { $set: { 'bucketList.$.status': 'incomplete' } }
-      );
+      // If assigned, mark incomplete
+      if (order.assignedTo && order.assignedTo.riderId) {
+        order.assignedTo.completed = false;
+      }
     }
 
     await order.save();
@@ -66,7 +60,7 @@ router.post('/:orderId/status', async (req, res) => {
   }
 });
 
-// 🔥 Return flow
+// Return flow
 router.post('/:orderId/return', async (req, res) => {
   try {
     const { returnStatus } = req.body;
@@ -74,7 +68,6 @@ router.post('/:orderId/return', async (req, res) => {
     if (!order) return res.status(404).json({ error: 'Not found' });
 
     order.returnStatus = returnStatus;
-
     const now = new Date();
     if (returnStatus === 'Return Requested') order.returnTimeline.requestedAt = now;
     if (returnStatus === 'Return Approved / Pickup Scheduled') order.returnTimeline.approvedAt = now;

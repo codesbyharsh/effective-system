@@ -20,7 +20,7 @@ const Dashboard = () => {
 
   // fetch pincodes
   useEffect(() => {
-axios.get(`${API}/pincodes`).then((res) => setPincodes(res.data.data));
+    axios.get(`${API}/pincodes`).then((res) => setPincodes(res.data.data));
   }, []);
 
   // fetch orders for selected pincode
@@ -32,21 +32,53 @@ axios.get(`${API}/pincodes`).then((res) => setPincodes(res.data.data));
     }
   }, [selectedPincode]);
 
+  // helper: mark local order as assigned/unassigned
+  const applyOrderUpdateLocally = (updatedOrder) => {
+    setOrders(prev => prev.map(o => (o._id === updatedOrder._id ? updatedOrder : o)));
+
+    if (updatedOrder.inBucket && updatedOrder.assignedTo?.riderId === currentUser?.id) {
+      setBucket(prev => prev.some(o => o._id === updatedOrder._id) ? prev : [updatedOrder, ...prev]);
+    } else {
+      setBucket(prev => prev.filter(o => o._id !== updatedOrder._id));
+    }
+
+    if (updatedOrder.orderStatus === "Delivered") {
+      setCompleted(prev => prev.some(o => o._id === updatedOrder._id) ? prev : [updatedOrder, ...prev]);
+      setOrders(prev => prev.filter(o => o._id !== updatedOrder._id));
+      setBucket(prev => prev.filter(o => o._id !== updatedOrder._id));
+    }
+  };
+
   const toggleBucket = async (order) => {
-    const inBucket = bucket.some((o) => o._id === order._id);
-    const url = `${API}/delivery/bucket/${order._id}/${inBucket ? "remove" : "add"}`;
-    await axios.post(url, { riderId: currentUser.id });
-    if (inBucket) setBucket(bucket.filter((o) => o._id !== order._id));
-    else setBucket([...bucket, order]);
+    if (!currentUser || !currentUser.id) {
+      alert("You must be logged in as a rider");
+      return;
+    }
+    const isInBucket = bucket.some((o) => o._id === order._id);
+    const url = `${API}/delivery/bucket/${order._id}/${isInBucket ? "remove" : "add"}`;
+
+    try {
+      const res = await axios.post(url, { riderId: currentUser.id });
+      if (res.data?.order) {
+        applyOrderUpdateLocally(res.data.order);
+      } else {
+        applyOrderUpdateLocally(res.data);
+      }
+    } catch (err) {
+      console.error("bucket toggle failed:", err);
+      alert(err.response?.data?.error || err.message || "Failed");
+    }
   };
 
   const updateStatus = async (id, status) => {
-    await axios.post(`${API}/orders/${id}/status`, { status, riderId: currentUser.id });
-    if (status === "Delivered") {
-      const delivered = bucket.find((o) => o._id === id) || orders.find((o) => o._id === id);
-      if (delivered) setCompleted([delivered, ...completed]);
-      setOrders(orders.filter((o) => o._id !== id));
-      setBucket(bucket.filter((o) => o._id !== id));
+    try {
+      const res = await axios.post(`${API}/orders/${id}/status`, { status, riderId: currentUser.id });
+      if (res.data) {
+        applyOrderUpdateLocally(res.data);
+      }
+    } catch (err) {
+      console.error("status update failed:", err);
+      alert(err.response?.data?.error || "Failed to update status");
     }
   };
 
