@@ -1,0 +1,92 @@
+/* Root container */
+.dashboard {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  padding: 20px;
+  background: #f7f9fc;
+  min-height: 100vh;
+  color: #333;
+}
+
+/* Top buttons (tabs) */
+.dashboard .view-switcher {
+  display: flex;
+  gap: 12px;
+  margin: 15px 0;
+}
+
+.dashboard .view-switcher button {
+  padding: 8px 16px;
+  background: #e9eef5;
+  border: 1px solid #cdd5df;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.dashboard .view-switcher button:hover {
+  background: #d6e3f8;
+}
+
+.dashboard .view-switcher button:active {
+  background: #b9d1f0;
+}
+
+/* Orders / Bucket / Completed containers */
+.dashboard .orders-container,
+.dashboard .bucket-container,
+.dashboard .completed-container {
+  margin-top: 10px;
+  padding: 15px;
+  background: #fff;
+  border: 1px solid #e3e6eb;
+  border-radius: 8px;
+  box-shadow: 0px 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Completed orders */
+.dashboard .completed-container div {
+  padding: 8px 12px;
+  background: #f1fdf4;
+  border: 1px solid #c8e6c9;
+  border-radius: 5px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #256029;
+}
+
+/* Location logs */
+.dashboard .location-logs {
+  margin-top: 20px;
+  padding: 12px 15px;
+  border: 1px solid #d1d5db;
+  background: #fdfdfd;
+  border-radius: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.dashboard .location-logs h4 {
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.dashboard .location-logs p {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.dashboard .location-logs ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.dashboard .location-logs li {
+  font-size: 13px;
+  padding: 4px 0;
+  border-bottom: 1px dashed #e5e7eb;
+  color: #374151;
+}

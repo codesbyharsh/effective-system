@@ -1,6 +1,7 @@
+// components/OrdersList.jsx
 import OrderItem from "./OrderItem";
 
-const OrdersList = ({ orders, bucket, onToggleBucket }) => {
+const OrdersList = ({ orders, bucket, onToggleBucket, currentUser }) => {
   return (
     <div>
       <h3>Available Orders</h3>
@@ -9,7 +10,7 @@ const OrdersList = ({ orders, bucket, onToggleBucket }) => {
         <OrderItem
           key={order._id}
           order={order}
-          inBucket={bucket.some((o) => o._id === order._id)}
+          currentUser={currentUser}
           onToggleBucket={() => onToggleBucket(order)}
         />
       ))}

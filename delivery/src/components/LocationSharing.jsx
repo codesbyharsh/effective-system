@@ -1,46 +1,66 @@
-import { useState, useEffect } from "react";
+// src/components/LocationSharing.jsx
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
 const API = "http://localhost:5000/api";
 
-const LocationSharing = ({ user }) => {
+export default function LocationSharing({ user }) {
   const [sharing, setSharing] = useState(false);
-  const [error, setError] = useState("");
+  const intervalRef = useRef(null);
 
   useEffect(() => {
-    let interval;
-    if (sharing) {
-      interval = setInterval(() => {
+    // Cleanup on unmount
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  const startSharing = () => {
+    if (!user?.id) {
+      alert("Please login as rider");
+      return;
+    }
+
+    setSharing(true);
+
+    intervalRef.current = setInterval(() => {
+      if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
             try {
-              await axios.post(`${API}/rider/location`, {
-                username: user.username,
-                name: user.name,
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude,
-                timestamp: new Date(),
+              const { latitude, longitude } = pos.coords;
+              await axios.post(`${API}/rider/${user.id}/location`, {
+                lat: latitude,
+                lng: longitude,
               });
-            } catch {
-              setError("Failed to update location");
+              console.log("Location sent:", latitude, longitude);
+            } catch (err) {
+              console.error("Failed to send location:", err);
             }
           },
-          () => setError("Failed to get location"),
+          (err) => console.error("Geolocation error:", err),
           { enableHighAccuracy: true }
         );
-      }, 3000); // every 3 sec
-    }
-    return () => clearInterval(interval);
-  }, [sharing, user]);
+      }
+    }, 3000);
+  };
+
+  const stopSharing = () => {
+    setSharing(false);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
 
   return (
     <div style={{ margin: "10px 0" }}>
-      <button onClick={() => setSharing((prev) => !prev)}>
-        {sharing ? "Stop Location Sharing" : "Start Location Sharing"}
-      </button>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {sharing ? (
+        <button onClick={stopSharing} style={{ background: "red", color: "#fff" }}>
+          Stop Sharing Location
+        </button>
+      ) : (
+        <button onClick={startSharing} style={{ background: "green", color: "#fff" }}>
+          Start Sharing Location
+        </button>
+      )}
     </div>
   );
-};
-
-export default LocationSharing;
+}

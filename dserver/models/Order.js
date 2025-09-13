@@ -12,7 +12,6 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: { type: String, enum: ['COD', 'UPI'], required: true },
   totalAmount: { type: Number, required: true },
 
-  // Delivery lifecycle
   orderStatus: {
     type: String,
     enum: [
@@ -26,19 +25,15 @@ const orderSchema = new mongoose.Schema({
     default: 'Order Placed'
   },
 
-  // Order-centric bucket/assignment (single source of truth)
-inBucket: { type: Boolean, default: false },
-bucketHistory: [
-  {
-    rider: { type: mongoose.Schema.Types.ObjectId, ref: "Rider" },
-    name: String,
-    status: { type: String, enum: ["pending", "completed", "incomplete"], default: "pending" },
-    assignedAt: { type: Date, default: Date.now },
-    deliveredAt: Date
-  }
-],
-bucketedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Rider", default: null }
-,
+  // ✅ bucket assignment
+  inBucket: { type: Boolean, default: false },
+  assignedTo: {
+    riderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Rider', default: null },
+    riderName: { type: String, default: null },
+    assignedAt: { type: Date, default: null },
+    deliveredAt: { type: Date, default: null },
+    completed: { type: Boolean, default: false }
+  },
 
   // Delivery timestamps
   placedAt: { type: Date, default: Date.now },
@@ -47,7 +42,7 @@ bucketedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Rider", default: null 
   outForDeliveryAt: Date,
   deliveredAt: Date,
 
-  // Return lifecycle
+  // 🔥 Return lifecycle
   returnStatus: {
     type: String,
     enum: [

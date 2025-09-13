@@ -1,18 +1,24 @@
 // routes/orderRoutes.js
 const express = require('express');
+const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const router = express.Router();
 
-// get orders by pincode (only Packed / Processing)
+/**
+ * GET /api/orders/available/:pincode
+ * Only show "Packed / Processing" orders for selected pincode.
+ */
 router.get('/available/:pincode', async (req, res) => {
   try {
     const { pincode } = req.params;
+
     const orders = await Order.find({
       'shippingAddress.pincode': pincode,
       orderStatus: 'Packed / Processing'
     })
       .populate('user', 'name mobile')
       .populate('items.product', 'name price')
+      .populate('assignedTo.riderId', 'name username') // ✅ include rider info
       .sort({ createdAt: -1 });
 
     res.json(orders);
@@ -22,49 +28,67 @@ router.get('/available/:pincode', async (req, res) => {
   }
 });
 
-// Update delivery status
+/**
+ * POST /api/orders/:orderId/status
+ * Update delivery status.
+ */
 router.post('/:orderId/status', async (req, res) => {
   try {
     const { status } = req.body;
-    const order = await Order.findById(req.params.orderId);
+    const { orderId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orderId)) return res.status(400).json({ error: 'Invalid orderId' });
+
+    const order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ error: 'Not found' });
 
     order.orderStatus = status;
     if (status === 'Packed / Processing') order.packedAt = new Date();
     if (status === 'Shipped / Dispatched') order.shippedAt = new Date();
     if (status === 'Out for Delivery') order.outForDeliveryAt = new Date();
+
     if (status === 'Delivered') {
       order.deliveredAt = new Date();
       order.inBucket = false;
-
-      // Mark assignedTo as completed/delivered if assigned
-      if (order.assignedTo && order.assignedTo.riderId) {
-        order.assignedTo.deliveredAt = new Date();
-        order.assignedTo.completed = true;
-      }
+      order.assignedTo.completed = true;
+      order.assignedTo.deliveredAt = new Date();
     }
+
     if (status === 'Cancelled') {
       order.inBucket = false;
-
-      // If assigned, mark incomplete
-      if (order.assignedTo && order.assignedTo.riderId) {
-        order.assignedTo.completed = false;
-      }
+      order.assignedTo = {
+        riderId: null,
+        riderName: null,
+        assignedAt: null,
+        deliveredAt: null,
+        completed: false
+      };
     }
 
     await order.save();
-    res.json(order);
+
+    const updated = await Order.findById(orderId)
+      .populate('user', 'name mobile')
+      .populate('items.product', 'name price')
+      .populate('assignedTo.riderId', 'name username');
+
+    res.json(updated);
   } catch (err) {
     console.error('Status update error:', err);
     res.status(500).json({ error: 'Failed to update status' });
   }
 });
 
-// Return flow
+/**
+ * POST /api/orders/:orderId/return
+ * Update return lifecycle and timestamps.
+ */
 router.post('/:orderId/return', async (req, res) => {
   try {
     const { returnStatus } = req.body;
-    const order = await Order.findById(req.params.orderId);
+    const { orderId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orderId)) return res.status(400).json({ error: 'Invalid orderId' });
+
+    const order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ error: 'Not found' });
 
     order.returnStatus = returnStatus;
@@ -78,7 +102,13 @@ router.post('/:orderId/return', async (req, res) => {
     if (returnStatus === 'Refund Completed') order.returnTimeline.refundCompletedAt = now;
 
     await order.save();
-    res.json(order);
+
+    const updated = await Order.findById(orderId)
+      .populate('user', 'name mobile')
+      .populate('items.product', 'name price')
+      .populate('assignedTo.riderId', 'name username');
+
+    res.json(updated);
   } catch (err) {
     console.error('Return update error:', err);
     res.status(500).json({ error: 'Failed to update return status' });

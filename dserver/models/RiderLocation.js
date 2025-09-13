@@ -1,15 +1,18 @@
-// server/models/RiderLocation.js
-const mongoose = require('mongoose');
+// models/RiderLocation.js
+const mongoose = require("mongoose");
 
 const riderLocationSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true }, // unique -> a single current location
-  name: { type: String }, // optional rider name for display
-  latitude: { type: Number, required: true },
-  longitude: { type: Number, required: true },
-  timestamp: { type: Date, required: true }, // store Date
-}, { timestamps: true });
+  rider: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Rider",
+    required: true,
+    unique: true, // one location doc per rider
+  },
+  coords: {
+    lat: { type: Number, required: true },
+    lng: { type: Number, required: true },
+  },
+  updatedAt: { type: Date, default: Date.now },
+});
 
-// create unique index on username to ensure only one entry exists per rider
-riderLocationSchema.index({ username: 1 }, { unique: true });
-
-module.exports = mongoose.model('RiderLocation', riderLocationSchema);
+module.exports = mongoose.model("RiderLocation", riderLocationSchema);
